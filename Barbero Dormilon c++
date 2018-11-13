@@ -1,0 +1,128 @@
+#include<iostream>
+#include<thread>
+#include<mutex>
+#include<Windows.h>
+
+struct Nodo
+{
+	int valor;
+	int numerodeLlegada;
+	Nodo * siguiente;
+};
+
+using namespace std;
+
+bool repeat = true;
+Nodo * cabeza = NULL, *cola = NULL;
+int numeroNodo = 0, SillasEnUso = 0;
+mutex semaforo;
+void barberoEsperaCliente(const int barberId);
+void esperaClienteP();
+
+
+
+void barberoEsperaCliente(const int barberoId)
+{
+	while (repeat) {
+		if (cabeza)
+		{
+			Nodo * nextClient = cabeza;
+			if (cabeza)
+				if (cabeza == cola)
+				{
+					cabeza = NULL;
+					cola = NULL;
+				}
+				else
+					cabeza = cabeza->siguiente;
+			SillasEnUso--;
+			if (nextClient)
+			{
+				for (int i = 1; i <= nextClient->valor; i++)
+				{
+					semaforo.lock();
+					cout << "\nBarbero " << barberoId << " Cortando pelo del cliente #" << nextClient->numerodeLlegada << " Tiempo " << i << " de " << nextClient->valor << "/s";
+					semaforo.unlock();
+					this_thread::sleep_for(chrono::seconds(1));
+				}
+			}
+		}
+		else {
+		}
+	}
+}
+
+void esperaClienteP()
+{
+	while (repeat && numeroNodo < 10)
+	{
+		int num;
+		if (SillasEnUso < 5)
+		{
+			this_thread::sleep_for(chrono::seconds(rand() % 2 + 1));
+			semaforo.lock();
+			cout << "\nIngresa cliente (Tiempo) " << (num = rand() % 20 + 1);
+			semaforo.unlock();
+			Nodo * item = new Nodo();
+			item->numerodeLlegada = numeroNodo;
+			item->siguiente = NULL;
+			item->valor = ++numeroNodo;
+			if (!cabeza)
+			{
+				cabeza = item;
+				cola = item;
+			}
+			else {
+				cola->siguiente = item;
+				cola = item;
+			}
+			SillasEnUso++;
+		}
+	}
+}
+
+int main() {
+	int op;
+	op = 0;
+	bool inputError = false;
+	do {
+		system("cls");
+		cout << "BARBERO DORMILON\n";
+		cout << "1.Iniciar\n";
+		cout << "0.Salir\n";
+		cin >> op;
+		if (cin.fail())
+		{
+			cin.clear();
+			cin.ignore(256, '\n');
+			inputError = true;
+		}
+		if (inputError) continue;
+		switch (op)
+		{
+		case 1:
+		{
+			repeat = true;
+
+			thread hDoorThread(esperaClienteP);
+
+
+			thread hBarberThreads[2];
+			for (int i = 0; i < 2; i++)
+				hBarberThreads[i] = thread(barberoEsperaCliente, i + 1);
+
+			for (int i = 0; i < 2; i++)
+				hBarberThreads[i].join();
+			hDoorThread.join();
+
+		}
+		break;
+		default:
+			cout << "\nOpcion no encontrada\n";
+			break;
+		}
+		cin.ignore(256, '\n');
+		getchar();
+	} while (op != 0 || inputError);
+	exit(0);
+}
